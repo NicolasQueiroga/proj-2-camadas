@@ -11,7 +11,7 @@
 
 
 from enlace import *
-import time
+import timeit
 import numpy as np
 from PIL import Image
 from io import BytesIO
@@ -33,7 +33,7 @@ def main():
 
         # Ativa comunicacao. Inicia os threads e a comunicação seiral
         com1.enable()
-        t1 = time.clock_gettime()
+        t1 = timeit.default_timer()
         # Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
         print('\n---> A comunicação foi aberta com sucesso!')
         # aqui você deverá gerar os dados a serem transmitidos.
@@ -80,11 +80,11 @@ def main():
         # Encerra comunicação
         print("-----------------------------")
         print("---> Comunicação encerrada")
-        print("-----------------------------")
         com1.disable()
-        
-        t2 = time.clock_gettime()
+
+        t2 = timeit.default_timer()
         print(f'---> process took {t2 - t1} seconds')
+        print("-----------------------------")
 
     except Exception as erro:
         print("ops! :-\\")
