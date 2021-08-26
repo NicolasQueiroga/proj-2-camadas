@@ -22,7 +22,7 @@ from io import BytesIO
 #   python -m serial.tools.list_ports
 # se estiver usando windows, o gerenciador de dispositivos informa a porta
 
-serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
+serialName = "/dev/cu.usbmodem1422401"           # Ubuntu (variacao de)
 
 
 def main():
