@@ -10,72 +10,78 @@
 # para acompanhar a execução e identificar erros, construa prints ao longo do código!
 
 
+from sys import byteorder
 from enlace import *
 import timeit
+import random
 import numpy as np
 from PIL import Image
 from io import BytesIO
 
 
-# voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
-#   para saber a sua porta, execute no terminal :
-#   python -m serial.tools.list_ports
-# se estiver usando windows, o gerenciador de dispositivos informa a porta
+# Port do arduino
+serialName = "/dev/ttyACM0"
 
-serialName = "/dev/ttyACM0"           # Ubuntu (variacao de)
+# Lista de comandos existentes
+comandos = [0x00FF.to_bytes(2, byteorder='big'), 0x00.to_bytes(1, byteorder='big'), 0x0F.to_bytes(1, byteorder='big'), 0xF0.to_bytes(1, byteorder='big'), 0xFF00.to_bytes(2, byteorder='big'), 0xFF.to_bytes(1, byteorder='big')]
+
+# Lista inicializada para envio
+global send
+send = [0xAA.to_bytes(1, byteorder='big')]
 
 
 def main():
+    '''
+        Função que realiza a comunicação entre os arduinos
+    '''
     try:
-        # declaramos um objeto do tipo enlace com o nome "com". Essa é a camada inferior à aplicação. Observe que um parametro
-        # para declarar esse objeto é o nome da porta.
         com1 = enlace(serialName)
 
         # Ativa comunicacao. Inicia os threads e a comunicação seiral
         com1.enable()
+        print('\n---> A comunicação foi aberta com sucesso!\n')
+
+        # Inicia o timer
         t1 = timeit.default_timer()
-        # Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
-        print('\n---> A comunicação foi aberta com sucesso!')
-        # aqui você deverá gerar os dados a serem transmitidos.
-        # seus dados a serem transmitidos são uma lista de bytes a serem transmitidos. Gere esta lista com o
-        # nome de txBuffer. Esla sempre irá armazenar os dados a serem enviados.
-        with open('resources/img.bmp', 'rb') as image:
-            f = image.read()
-            txBuffer = bytearray(f)
 
-        # faça aqui uma conferência do tamanho do seu txBuffer, ou seja, quantos bytes serão enviados.
-        img_size = len(f)
-        print(f'---> Tamanho da imagem: {img_size} bytes')
+        # Montando lista aleatória de 10 a 30 comandos do formato [size, cmd, size, cmd, ...]
+        n_commands = random.randint(10, 30)
+        for _ in np.arange(n_commands):
+            i = random.randint(0, 5)
+            cmd = comandos[i]
+            n_cmd_byte = len(cmd).to_bytes(1, byteorder='big')
+            send.append(n_cmd_byte)
+            send.append(cmd)
+        send.append(0xEE.to_bytes(1, byteorder='big'))
 
-        # finalmente vamos transmitir os tados. Para isso usamos a funçao sendData que é um método da camada enlace.
-        # faça um print para avisar que a transmissão vai começar.
-        # tente entender como o método send funciona!
-        # Cuidado! Apenas trasmitimos arrays de bytes! Nao listas!
+        print(f'---> Sequência: \n{send} (lista de bytes)')
+        print(f'---> Número de comandos: {n_commands}\n')
 
-        txBuffer = np.array(txBuffer)
-        com1.sendData(np.asarray(txBuffer))
+        # 
+        txBuffer = (b''.join(send))
+        print(f'---> txBuffer: {txBuffer}')
+        
+        txBuffer_size = int(len(txBuffer))
+        # txBuffer_size_hex = bytes([(txBuffer_size)])
+        txBuffer_size_hex = bytes([(txBuffer_size)])
 
-        # A camada enlace possui uma camada inferior, TX possui um método para conhecermos o status da transmissão
-        # Tente entender como esse método funciona e o que ele retorna
-        txSize = com1.tx.getStatus()
-        # Agora vamos iniciar a recepção dos dados. Se algo chegou ao RX, deve estar automaticamente guardado
-        # Observe o que faz a rotina dentro do thread RX
-        # print um aviso de que a recepção vai começar.
+        print(f'---> txBuffer size: {txBuffer_size}')
+        print(f"---> txBuffer size hex: {txBuffer_size_hex}")
+
+        # Iniciando a transmição de dados
+        com1.sendData(txBuffer)
+
         print('\n---> A recepção vai começar!')
-        # Será que todos os bytes enviados estão realmente guardadas? Será que conseguimos verificar?
-        # Veja o que faz a funcao do enlaceRX  getBufferLen
-        buffer_size = com1.tx.getBufferLen()
-        print(f'---> Tamanho do buffer: {buffer_size} bytes')
-        print(
-            f'\n---> Tamanho da imagem = Tamanho do buffer? {buffer_size == img_size}')
 
-        # acesso aos bytes recebidos
+        print('DEBUG 1')
+
+        # Recebendo o byte que representa o tamanho do array enviado
         txLen = len(txBuffer)
-        rxBuffer, nRx = com1.getData(txLen)
+        rxBuffer, nRx = com1.getData(1)
+        print('DEBUG 2')
         print("\nRecebido:\n {}\n" .format(rxBuffer))
-
-        output_image = Image.open(BytesIO(rxBuffer))
-        output_image.save('resources/out.bmp')
+        recebidos = int.from_bytes(rxBuffer, 'big')
+        print(f'Tamanho da sequência enviada = Tamanho da sequência recebida? {recebidos == n_commands}')
 
         # Encerra comunicação
         print("-----------------------------")
