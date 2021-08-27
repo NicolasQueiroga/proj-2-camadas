@@ -17,74 +17,60 @@ from PIL import Image
 from io import BytesIO
 
 
-# voce deverá descomentar e configurar a porta com através da qual ira fazer comunicaçao
-#   para saber a sua porta, execute no terminal :
 #   python -m serial.tools.list_ports
-# se estiver usando windows, o gerenciador de dispositivos informa a porta
-
-serialName = "/dev/cu.usbmodem1422401"           # Ubuntu (variacao de)
-
+serialName = "/dev/cu.usbmodem1432401"
 
 def main():
     try:
-        # declaramos um objeto do tipo enlace com o nome "com". Essa é a camada inferior à aplicação. Observe que um parametro
-        # para declarar esse objeto é o nome da porta.
+        START = False
+        READING = True
+        FLAG = 0
+
         com1 = enlace(serialName)
 
         # Ativa comunicacao. Inicia os threads e a comunicação seiral
         com1.enable()
-        t1 = timeit.default_timer()
+
         # Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
         print('\n---> A comunicação foi aberta com sucesso!')
-        # aqui você deverá gerar os dados a serem transmitidos.
-        # seus dados a serem transmitidos são uma lista de bytes a serem transmitidos. Gere esta lista com o
-        # nome de txBuffer. Esla sempre irá armazenar os dados a serem enviados.
-        with open('resources/img.bmp', 'rb') as image:
-            f = image.read()
-            txBuffer = bytearray(f)
+        
+        while not START:
+            byte = com1.getData(1)
+            print(byte)
+            print(byte[0])
+            if byte[0] == b'\xaa':
+                print('Recebeu o AA')
+                START = True
+        
+        comandos = []
+        comando = b''
+        while READING:
+            byte = com1.getData(1)
+            print(byte)
+            if byte[0] != b'\xee':
+                if FLAG == 0:
+                    FLAG = int.from_bytes(byte[0], "big")
+                else:
+                    if FLAG == 1:
+                        comando += byte[0]
+                        comandos.append(comando)
+                        comando = b''
+                    else:
+                        comando += byte[0]
+                    FLAG -= 1
+            else:
+                print('Recebeu o EE')
+                READING = False
 
-        # faça aqui uma conferência do tamanho do seu txBuffer, ou seja, quantos bytes serão enviados.
-        img_size = len(f)
-        print(f'---> Tamanho da imagem: {img_size} bytes')
 
-        # finalmente vamos transmitir os tados. Para isso usamos a funçao sendData que é um método da camada enlace.
-        # faça um print para avisar que a transmissão vai começar.
-        # tente entender como o método send funciona!
-        # Cuidado! Apenas trasmitimos arrays de bytes! Nao listas!
-
-        txBuffer = np.array(txBuffer)
-        com1.sendData(np.asarray(txBuffer))
-
-        # A camada enlace possui uma camada inferior, TX possui um método para conhecermos o status da transmissão
-        # Tente entender como esse método funciona e o que ele retorna
-        txSize = com1.tx.getStatus()
-        # Agora vamos iniciar a recepção dos dados. Se algo chegou ao RX, deve estar automaticamente guardado
-        # Observe o que faz a rotina dentro do thread RX
-        # print um aviso de que a recepção vai começar.
-        print('\n---> A recepção vai começar!')
-        # Será que todos os bytes enviados estão realmente guardadas? Será que conseguimos verificar?
-        # Veja o que faz a funcao do enlaceRX  getBufferLen
-        buffer_size = com1.tx.getBufferLen()
-        print(f'---> Tamanho do buffer: {buffer_size} bytes')
-        print(
-            f'\n---> Tamanho da imagem = Tamanho do buffer? {buffer_size == img_size}')
-
-        # acesso aos bytes recebidos
-        txLen = len(txBuffer)
-        rxBuffer, nRx = com1.getData(txLen)
-        print("\nRecebido:\n {}\n" .format(rxBuffer))
-
-        output_image = Image.open(BytesIO(rxBuffer))
-        output_image.save('resources/out.bmp')
-
+        print(len(comandos))
+        com1.sendData(len(comandos).to_bytes(1,'big'))
         # Encerra comunicação
         print("-----------------------------")
         print("---> Comunicação encerrada")
+        print("-----------------------------")
         com1.disable()
 
-        t2 = timeit.default_timer()
-        print(f'---> process took {t2 - t1} seconds')
-        print("-----------------------------")
 
     except Exception as erro:
         print("ops! :-\\")
