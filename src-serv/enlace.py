@@ -37,6 +37,7 @@ class enlace(object):
         self.fisica.close()
 
     def sendData(self, data):
+        # print(data) #DEBUG
         self.tx.sendBuffer(data)
         
     def getData(self, size):
