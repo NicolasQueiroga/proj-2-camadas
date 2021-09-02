@@ -18,7 +18,7 @@ from io import BytesIO
 
 
 #   python -m serial.tools.list_ports
-serialName = "/dev/cu.usbmodem1432401"
+serialName = "/dev/cu.usbmodem1412201"
 
 def main():
     try:
@@ -32,21 +32,24 @@ def main():
         com1.enable()
 
         # Se chegamos até aqui, a comunicação foi aberta com sucesso. Faça um print para informar.
-        print('\n---> A comunicação foi aberta com sucesso!')
+        print('\n---> A comunicação foi aberta com sucesso!\n')
         
         while not START:
             byte = com1.getData(1)
-            print(byte)
-            print(byte[0])
+            # print(byte) #DEBUG
+            # print(byte[0]) #DEBUG
             if byte[0] == b'\xaa':
-                print('Recebeu o AA')
+                print('---> Recebeu o AA\n')
                 START = True
         
+
         comandos = []
         comando = b''
+
+        print('---> Lendo o Pacote enviado\n')
         while READING:
             byte = com1.getData(1)
-            print(byte)
+            # print(byte) #DEBUG
             if byte[0] != b'\xee':
                 if FLAG == 0:
                     FLAG = int.from_bytes(byte[0], "big")
@@ -59,12 +62,19 @@ def main():
                         comando += byte[0]
                     FLAG -= 1
             else:
-                print('Recebeu o EE')
+                print('---> Recebeu o EE\n')
                 READING = False
 
 
-        print(len(comandos))
-        com1.sendData(len(comandos).to_bytes(1,'big'))
+        # print(len(comandos)) #DEBUG
+        n_comandos = len(comandos).to_bytes(1,'big')
+
+        # print(n_comandos) #DEBUG
+
+        # teste_envio = b'\x01' #DEBUG
+
+        com1.sendData(n_comandos)
+
         # Encerra comunicação
         print("-----------------------------")
         print("---> Comunicação encerrada")
