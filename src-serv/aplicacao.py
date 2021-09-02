@@ -67,8 +67,10 @@ def main():
 
 
         # print(len(comandos)) #DEBUG
-        n_comandos = int(len(comandos)).to_bytes(1,'big')
+        n_comandos = len(comandos).to_bytes(1,'big')
+
         # print(n_comandos) #DEBUG
+
         # teste_envio = b'\x01' #DEBUG
 
         com1.sendData(n_comandos)
