@@ -39,8 +39,6 @@ def main():
         com1.enable()
         print('---> A comunicação foi aberta com sucesso!\n')
 
-        # Inicia o timer
-        t1 = timeit.default_timer()
 
         # Montando lista aleatória de 10 a 30 comandos do formato [start, cmd, size, cmd, ..., end]
         n_commands = random.randint(10, 30)
@@ -55,8 +53,10 @@ def main():
         print(f'---> Sequência:  {send} (lista de bytes)')
         print(f'---> Número de comandos: {n_commands}')
 
-        # Iniciando a transmição de dados
         txBuffer = (b''.join(send))
+        # Inicia o timer
+        t1 = timeit.default_timer()
+        # Iniciando a transmição de dados
         com1.sendData(txBuffer)
 
         print('\n---> A recepção vai começar!')
@@ -64,6 +64,7 @@ def main():
         # Recebendo o byte que representa o tamanho do array enviado
         rxBuffer, _ = com1.getData(1)
         print("\n---> Recebido: {}\n" .format(rxBuffer))
+        t2 = timeit.default_timer()
         recebidos = int.from_bytes(rxBuffer, 'big')
         print(
             f'Tamanho da sequência enviada = Tamanho da sequência recebida? {recebidos == n_commands}')
@@ -73,7 +74,7 @@ def main():
         print("---> Comunicação encerrada")
         com1.disable()
 
-        print(f'---> process took {(timeit.default_timer() - t1):.8f} seconds')
+        print(f'---> process took {(t2 - t1):.8f} seconds')
         print("-----------------------------")
 
     except Exception as erro:
